@@ -1,6 +1,6 @@
 import random
 
-# Define the full search space (all items included) test githubs
+# Define the full search space (all items included) 
 categories = {
     "Top": [
         {"Item": "T-shirt", "Price": 0.0, "DressCode": "Casual", "Color": "Bright", "Comfort": 5},
@@ -60,28 +60,43 @@ budget_weight = 0.4
 color_palette_weight = 0.1
 comfort_weight = 0.1
 
-# Create initial population
-def create_initial_population(pop_size=10):
+
+def create_initial_population(pop_size=10, budget=1000):
     population = []
-    for _ in range(pop_size):
+    found_outfits = 0  # Counter for successfully found outfits
+
+    while found_outfits < pop_size:
+        # Generate a random outfit
         outfit = {category: random.choice(items) for category, items in categories.items()}
-        population.append(outfit)
+
+        # Calculate total price of the outfit
+        total_price = sum([outfit[cat]["Price"] for cat in outfit])
+
+        # If the outfit is within the budget, add it to the population
+        if total_price <= budget:
+            population.append(outfit)
+            found_outfits += 1  # Increment count of valid outfits
+
     return population
 
-# Fitness function
+
 def fitness(outfit, dress_code, color_palette, budget, comfort_level):
     total_price = sum([outfit[cat]["Price"] for cat in outfit])
-    avg_comfort = sum([outfit[cat]["Comfort"] for cat in outfit]) / len(outfit)
-    
-    # Check if the dress code and color palette match
+
+    # Check if comfort of each item is equal to or greater than comfort_level
+    comfort_match = sum([1 if outfit[cat]["Comfort"] >= comfort_level else 0 for cat in outfit])
+    avg_comfort = comfort_match / len(outfit)  # Divide by the number of items to get the average
+
     dress_code_match = sum([outfit[cat]["DressCode"] == dress_code for cat in outfit]) / len(outfit)
     color_match = sum([outfit[cat]["Color"] == color_palette for cat in outfit]) / len(outfit)
 
-    # Calculate fitness score
-    fitness_value = (dress_code_weight * dress_code_match + 
-                     color_palette_weight * color_match + 
-                     budget_weight * max(0, (budget - total_price) / budget) + 
-                     comfort_weight * avg_comfort / 5)
+    # Calculate fitness score using weighted criteria
+    fitness_value = (
+        dress_code_weight * dress_code_match + 
+        color_palette_weight * color_match + 
+        budget_weight * max(0, (budget - total_price) / budget) + 
+        comfort_weight * avg_comfort
+    )
     
     return fitness_value
 
@@ -106,8 +121,8 @@ def mutate(outfit):
     outfit[category] = random.choice(categories[category])
 
 # Genetic Algorithm
-def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=100, pop_size=10):
-    population = create_initial_population(pop_size)
+def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=1000, pop_size=100):
+    population = create_initial_population(pop_size, budget)
     
     for generation in range(generations):
         fitness_scores = {i: fitness(population[i], dress_code, color_palette, budget, comfort_level) for i in range(len(population))}
@@ -135,22 +150,39 @@ def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generati
     
     return population[best_outfit_idx], fitness_scores[best_outfit_idx]
 
-# User interaction
-def main():
-    # Get user inputs
-    dress_code = input("Enter the desired dress code (Casual, Sportswear, Business, Evening): ")
-    color_palette = input("Enter the desired color palette (Dark, Bright): ")
-    budget = float(input("Enter your budget (SAR): "))
-    comfort_level = int(input("Enter the desired comfort level (1 to 5): "))
 
-    # Run genetic algorithm
+def main():
+
+    userName = input("Welcome to PerfectFit! What is your name?\n")
+    print(f"\nHi {userName}, please provide your preferences:")
+    
+
+    dress_code = input("\nPlease enter your dress code preference (Casual, Sportswear, Business, Evening):\n")
+    color_palette = input("\nPlease enter your color palette preference (Dark, Bright):\n")
+    comfort_level = int(input("\nPlease enter your comfort level (1 (least comfortable) to 5 (most comfortable)):\n"))
+    budget = float(input("\nPlease enter your budget (in SAR):\n"))
+    
+
     best_outfit, score = genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=50, pop_size=20)
     
-    # Output best outfit
-    print("\nBest Outfit Recommendation:")
-    for category, item in best_outfit.items():
-        print(f"{category}: {item['Item']} (Price: {item['Price']} SAR, Dress Code: {item['DressCode']}, Color: {item['Color']}, Comfort: {item['Comfort']})")
-    print(f"\nFitness Score: {score:.2f}")
+
+    print("\nWe are working on preparing your optimal outfit...\n")
+    print("\nYour outfit selection is ready! Here's your personalized outfit plan:\n")
+    
+
+    categories_in_order = ["Top", "Bottom", "Shoes", "Neck", "Purse"]
+    for i, category in enumerate(categories_in_order, 1):
+        if category in best_outfit:  
+            item = best_outfit[category]
+            print(f" {category}: {item['Item']}")
+
+    
+    print("\nHope you feel fabulous in your outfit!")
+
+
 
 if __name__ == "__main__":
     main()
+
+
+
