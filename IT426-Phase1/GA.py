@@ -61,7 +61,7 @@ color_palette_weight = 0.1
 comfort_weight = 0.1
 
 
-def create_initial_population(pop_size=10, budget=1000):
+def create_initial_population(pop_size=100, budget=0):
     population = []
     found_outfits = 0  # Counter for successfully found outfits
 
@@ -75,7 +75,7 @@ def create_initial_population(pop_size=10, budget=1000):
         # If the outfit is within the budget, add it to the population
         if total_price <= budget:
             population.append(outfit)
-            found_outfits += 1  # Increment count of valid outfits
+            found_outfits += 1  
 
     return population
 
@@ -85,16 +85,23 @@ def fitness(outfit, dress_code, color_palette, budget, comfort_level):
 
     # Check if comfort of each item is equal to or greater than comfort_level
     comfort_match = sum([1 if outfit[cat]["Comfort"] >= comfort_level else 0 for cat in outfit])
-    avg_comfort = comfort_match / len(outfit)  # Divide by the number of items to get the average
+    avg_comfort = comfort_match / len(outfit)  
 
     dress_code_match = sum([outfit[cat]["DressCode"] == dress_code for cat in outfit]) / len(outfit)
     color_match = sum([outfit[cat]["Color"] == color_palette for cat in outfit]) / len(outfit)
+
+    # Handle budget to avoid division by zero
+    if budget > 0:
+        budget_component = max(0, (budget - total_price) / budget)
+    else:
+        # if budget 0
+        budget_component = 0
 
     # Calculate fitness score using weighted criteria
     fitness_value = (
         dress_code_weight * dress_code_match + 
         color_palette_weight * color_match + 
-        budget_weight * max(0, (budget - total_price) / budget) + 
+        budget_weight * budget_component + 
         comfort_weight * avg_comfort
     )
     
@@ -108,17 +115,34 @@ def binary_tournament_selection(population, fitness_scores):
     
     return tournament(), tournament()
 
-# Crossover (combine two outfits)
-def crossover(parent1, parent2):
+# Function to check if outfit is valid within the budget
+def valid_outfit(outfit, budget):
+    total_price = sum([outfit[cat]["Price"] for cat in outfit])
+    return total_price <= budget
+
+# Crossover (combine two outfits) with budget check
+def crossover(parent1, parent2, budget):
     child = {}
     for category in categories:
         child[category] = random.choice([parent1[category], parent2[category]])
+    
+    # Ensure the child outfit is within the budget
+    while not valid_outfit(child, budget):
+        child = {category: random.choice([parent1[category], parent2[category]]) for category in categories}
+    
     return child
 
-# Mutation (randomly change one item)
-def mutate(outfit):
+# Mutation (randomly change one item) with budget check
+def mutate(outfit, budget):
     category = random.choice(list(categories.keys()))
-    outfit[category] = random.choice(categories[category])
+    new_item = random.choice(categories[category])
+    outfit[category] = new_item
+    
+    # Ensure the mutated outfit is within the budget
+    while not valid_outfit(outfit, budget):
+        category = random.choice(list(categories.keys()))
+        new_item = random.choice(categories[category])
+        outfit[category] = new_item
 
 # Genetic Algorithm
 def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=1000, pop_size=100):
@@ -127,18 +151,18 @@ def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generati
     for generation in range(generations):
         fitness_scores = {i: fitness(population[i], dress_code, color_palette, budget, comfort_level) for i in range(len(population))}
         
-        # Selection and reproduction
+        # Selection 
         new_population = []
         while len(new_population) < pop_size:
             parent1_idx, parent2_idx = binary_tournament_selection(population, fitness_scores)
             parent1 = population[parent1_idx]
             parent2 = population[parent2_idx]
             
-            child = crossover(parent1, parent2)
+            child = crossover(parent1, parent2, budget)
             
-            # Mutate occasionally
+            # Mutate 
             if random.random() < 0.1:  # 10% mutation rate
-                mutate(child)
+                mutate(child , budget)
             
             new_population.append(child)
         
