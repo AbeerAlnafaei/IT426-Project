@@ -61,7 +61,7 @@ color_palette_weight = 0.1
 comfort_weight = 0.1
 
 
-def create_initial_population(pop_size=100, budget=0):
+def create_initial_population(pop_size=10, budget=0):
     population = []
     found_outfits = 0  # Counter for successfully found outfits
 
@@ -145,7 +145,7 @@ def mutate(outfit, budget):
         outfit[category] = new_item
 
 # Genetic Algorithm
-def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=1000, pop_size=100):
+def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=50, pop_size=10):
     population = create_initial_population(pop_size, budget)
     
     for generation in range(generations):
@@ -187,7 +187,7 @@ def main():
     budget = float(input("\nPlease enter your budget (in SAR):\n"))
     
 
-    best_outfit, score = genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=50, pop_size=20)
+    best_outfit, score = genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=50, pop_size=10)
     
 
     print("\nWe are working on preparing your optimal outfit...\n")
