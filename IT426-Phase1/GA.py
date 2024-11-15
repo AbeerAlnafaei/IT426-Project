@@ -144,35 +144,66 @@ def mutate(outfit, budget):
         new_item = random.choice(categories[category])
         outfit[category] = new_item
 
+def replacement(old_population, new_population, dress_code, color_palette, budget, comfort_level):
+
+    # Combine old and new populations
+    combined_population = old_population + new_population
+    
+    # Evaluate fitness for all individuals
+    combined_fitness = {i: fitness(individual, dress_code, color_palette, budget, comfort_level)
+                        for i, individual in enumerate(combined_population)}
+    
+    # Sort by fitness in descending order
+    sorted_indices = sorted(combined_fitness, key=combined_fitness.get, reverse=True)
+    
+    # Select the top individuals to form the next generation
+    next_generation = [combined_population[i] for i in sorted_indices[:len(old_population)]]
+    
+    return next_generation
+
+
+
 # Genetic Algorithm
-def genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=50, pop_size=10):
+def genetic_algorithm(dress_code, color_palette, budget, comfort_level, pop_size=10):
+    generations = 20
+    
     population = create_initial_population(pop_size, budget)
     
     for generation in range(generations):
-        fitness_scores = {i: fitness(population[i], dress_code, color_palette, budget, comfort_level) for i in range(len(population))}
+        # Step 1: Calculate fitness for each individual in the population
+        fitness_scores = {i: fitness(population[i], dress_code, color_palette, budget, comfort_level) 
+                          for i in range(len(population))}
         
-        # Selection 
+        # Step 2: Selection and crossover to generate new offspring
         new_population = []
         while len(new_population) < pop_size:
+            # Select parents using binary tournament selection
             parent1_idx, parent2_idx = binary_tournament_selection(population, fitness_scores)
             parent1 = population[parent1_idx]
             parent2 = population[parent2_idx]
             
+            # Perform crossover to create a child
             child = crossover(parent1, parent2, budget)
             
-            # Mutate 
+            # Apply mutation with a probability of 10%
             if random.random() < 0.1:  # 10% mutation rate
-                mutate(child , budget)
+                mutate(child, budget)
             
+            # Add the child to the new population
             new_population.append(child)
         
-        population = new_population
-
-    # Calculate final fitness scores again using indices
-    fitness_scores = {i: fitness(population[i], dress_code, color_palette, budget, comfort_level) for i in range(len(population))}
-    best_outfit_idx = max(fitness_scores, key=fitness_scores.get)
+        # Step 3: Replace the old population with the new one using the replacement strategy
+        population = replacement(population, new_population, dress_code, color_palette, budget, comfort_level)
     
+    # Step 4: After all generations, calculate the final fitness of the population
+    fitness_scores = {i: fitness(population[i], dress_code, color_palette, budget, comfort_level) 
+                      for i in range(len(population))}
+    
+    # Step 5: Return the best outfit and its fitness score
+    best_outfit_idx = max(fitness_scores, key=fitness_scores.get)
     return population[best_outfit_idx], fitness_scores[best_outfit_idx]
+
+
 
 
 def main():
@@ -187,7 +218,7 @@ def main():
     budget = float(input("\nPlease enter your budget (in SAR):\n"))
     
 
-    best_outfit, score = genetic_algorithm(dress_code, color_palette, budget, comfort_level, generations=50, pop_size=10)
+    best_outfit, score = genetic_algorithm(dress_code, color_palette, budget, comfort_level, pop_size=10)
     
 
     print("\nWe are working on preparing your optimal outfit...\n")
