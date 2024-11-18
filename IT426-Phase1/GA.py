@@ -120,22 +120,59 @@ def valid_outfit(outfit, budget):
     total_price = sum([outfit[cat]["Price"] for cat in outfit])
     return total_price <= budget
 
+#phase 1
+
 # Crossover (combine two outfits) with budget check
-def crossover(parent1, parent2, budget):
+ 
+#def crossover(parent1, parent2, budget):
+   # child = {}
+   # for category in categories:
+     #   child[category] = random.choice([parent1[category], parent2[category]])
+    
+    # Ensure the child outfit is within the budget
+  #  while not valid_outfit(child, budget):
+  #      child = {category: random.choice([parent1[category], parent2[category]]) for category in categories}
+    
+  #  return child
+
+
+#phase 2
+# 2-Point Crossover (combine two outfits)
+def two_point_crossover(parent1, parent2, budget):
+    # Get the list of categories
+    categories_list = list(categories.keys())
+    
+    # Select two random points for crossover
+    point1, point2 = sorted(random.sample(range(len(categories_list)), 2))
+    
+    # Create child by combining segments from both parents
     child = {}
-    for category in categories:
-        child[category] = random.choice([parent1[category], parent2[category]])
+    for i, category in enumerate(categories_list):
+        if point1 <= i <= point2:
+            child[category] = parent2[category]
+        else:
+            child[category] = parent1[category]
     
     # Ensure the child outfit is within the budget
     while not valid_outfit(child, budget):
-        child = {category: random.choice([parent1[category], parent2[category]]) for category in categories}
-    
+        point1, point2 = sorted(random.sample(range(len(categories_list)), 2))
+        for i, category in enumerate(categories_list):
+            if point1 <= i <= point2:
+                child[category] = parent2[category]
+            else:
+                child[category] = parent1[category]
+
     return child
 
-# Mutation (randomly change one item) with budget check
+
+        # Mutation (randomly change one item) with budget check
 def mutate(outfit, budget):
+    # Select a random category
     category = random.choice(list(categories.keys()))
+    # Randomly select a new item from that category
     new_item = random.choice(categories[category])
+    
+    # Replace the item in the outfit
     outfit[category] = new_item
     
     # Ensure the mutated outfit is within the budget
@@ -143,6 +180,7 @@ def mutate(outfit, budget):
         category = random.choice(list(categories.keys()))
         new_item = random.choice(categories[category])
         outfit[category] = new_item
+
 
 def replacement(old_population, new_population, dress_code, color_palette, budget, comfort_level):
 
@@ -162,11 +200,11 @@ def replacement(old_population, new_population, dress_code, color_palette, budge
     return next_generation
 
 
-
-# Genetic Algorithm
+# Genetic Algorithm with 2-point crossover and mutation
 def genetic_algorithm(dress_code, color_palette, budget, comfort_level, pop_size=10):
     generations = 20
     
+    # Step 0: Initialize the population
     population = create_initial_population(pop_size, budget)
     
     for generation in range(generations):
@@ -182,8 +220,8 @@ def genetic_algorithm(dress_code, color_palette, budget, comfort_level, pop_size
             parent1 = population[parent1_idx]
             parent2 = population[parent2_idx]
             
-            # Perform crossover to create a child
-            child = crossover(parent1, parent2, budget)
+            # Perform 2-point crossover to create a child
+            child = two_point_crossover(parent1, parent2, budget)
             
             # Apply mutation with a probability of 10%
             if random.random() < 0.1:  # 10% mutation rate
@@ -202,6 +240,7 @@ def genetic_algorithm(dress_code, color_palette, budget, comfort_level, pop_size
     # Step 5: Return the best outfit and its fitness score
     best_outfit_idx = max(fitness_scores, key=fitness_scores.get)
     return population[best_outfit_idx], fitness_scores[best_outfit_idx]
+
 
 
 
