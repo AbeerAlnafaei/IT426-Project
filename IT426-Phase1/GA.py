@@ -1,4 +1,5 @@
 import random
+import matplotlib.pyplot as plt # type: ignore
 
 # Define the full search space (all items included) 
 categories = {
@@ -272,6 +273,62 @@ def main():
 
     
     print("\nHope you feel fabulous in your outfit!")
+    # Number of generations and population size
+    generations = 20
+    population_size = 10
+
+    # Initialize variables for tracking performance
+    avg_fitness_per_generation = []
+
+    # Run the genetic algorithm
+    population = create_initial_population(population_size, budget)
+    best_fitness_overall = 0
+    best_outfit_overall = None
+
+    for generation in range(generations):
+        fitness_scores = {i: fitness(population[i], dress_code, color_palette, budget, comfort_level) 
+                          for i in range(len(population))}
+
+        # Store average fitness for the current generation
+        avg_fitness = sum(fitness_scores.values()) / len(fitness_scores)
+        avg_fitness_per_generation.append(avg_fitness)
+
+        # Check for the best individual in the generation
+        best_fitness_in_generation = max(fitness_scores.values())
+        if best_fitness_in_generation > best_fitness_overall:
+            best_fitness_overall = best_fitness_in_generation
+            best_outfit_overall = population[max(fitness_scores, key=fitness_scores.get)]
+
+        # Termination condition: If no significant improvement
+        if generation > 0 and abs(avg_fitness_per_generation[-1] - avg_fitness_per_generation[-2]) < 0.001:
+            print("\nConvergence detected. Terminating early.")
+            break
+
+        # Selection, crossover, mutation, and replacement
+        new_population = []
+        while len(new_population) < population_size:
+            parent1_idx, parent2_idx = binary_tournament_selection(population, fitness_scores)
+            parent1 = population[parent1_idx]
+            parent2 = population[parent2_idx]
+            child = two_point_crossover(parent1, parent2, budget)
+            if random.random() < 0.1:  # Mutation probability
+                mutate(child, budget)
+            new_population.append(child)
+
+        population = replacement(population, new_population, dress_code, color_palette, budget, comfort_level)
+
+    # Display the best outfit and its fitness score
+    print(f"\nBest outfit: {best_outfit_overall}")
+    print(f"Best fitness score: {best_fitness_overall}")
+
+    # Plot the graph of fitness over generations
+    plt.plot(avg_fitness_per_generation, label="Average Fitness")
+    plt.title("GA Performance: Generation vs Fitness")
+    plt.xlabel("Generation")
+    plt.ylabel("Fitness")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
 
