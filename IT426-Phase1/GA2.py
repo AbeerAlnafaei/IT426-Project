@@ -278,7 +278,18 @@ def main():
         print(f"  Best Outfit:")
         for category, item in best_outfits_per_run[i].items():
             print(f"    {category}: {item['Item']} (Price: {item['Price']},DressCode: {item['DressCode']},Color: {item['Color']}, Comfort: {item['Comfort']})")
+            
         print()
+   # Find the best outfit among all runs
+    best_fitness = max(best_fitness_per_run)
+    best_outfit_index = best_fitness_per_run.index(best_fitness)
+    best_outfit = best_outfits_per_run[best_outfit_index]
+
+    # Display the best outfit
+    print("\nHere's your perfect outfit:")
+    for category, item in best_outfit.items():
+        print(f"  {category}: {item['Item']} (Price: {item['Price']}, DressCode: {item['DressCode']}, Color: {item['Color']}, Comfort: {item['Comfort']})")
+ 
 
     # Plot the average fitness across generations
     print("\nPlotting the performance graph...\n")
@@ -287,3 +298,4 @@ def main():
     print("\nThank you for using PerfectFit!")
 if __name__ == "__main__":
     main()
+    
