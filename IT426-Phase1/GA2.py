@@ -62,12 +62,15 @@ budget_weight = 0.4
 color_palette_weight = 0.1
 comfort_weight = 0.1
 
-def create_initial_population(pop_size=10):
+def create_initial_population(pop_size, budget):
     population = []
     for _ in range(pop_size):
-        # Generate a random outfit by selecting one random item from each category
-        outfit = {category: random.choice(items) for category, items in categories.items()}
-        population.append(outfit)
+        while True:  # Keep generating outfits until the total price is within the budget
+            outfit = {category: random.choice(items) for category, items in categories.items()}
+            total_price = sum(outfit[cat]["Price"] for cat in outfit)
+            if total_price <= budget:
+                population.append(outfit)
+                break
     return population
 
 
@@ -103,56 +106,75 @@ def binary_tournament_selection(population, fitness_scores):
     
     return tournament(), tournament()
 
-def valid_outfit(outfit, budget):
-    # This function is no longer needed if budget checks are removed elsewhere
-    return True
 
 #phase 2
 # 2-Point Crossover (combine two outfits)
-def two_point_crossover(parent1, parent2):
-    # Get the list of categories
+
+def two_point_crossover(parent1, parent2, budget):
     categories_list = list(categories.keys())
     
-    # Select two random points for crossover
-    point1, point2 = sorted(random.sample(range(len(categories_list)), 2))
-    
-    # Create child by combining segments from both parents
-    child = {}
-    for i, category in enumerate(categories_list):
-        if point1 <= i <= point2:
-            child[category] = parent2[category]
-        else:
-            child[category] = parent1[category]
-
-    return child
+    while True:  # Repeat until a valid child is produced
+        # Select two random points for crossover
+        point1, point2 = sorted(random.sample(range(len(categories_list)), 2))
+        
+        # Create child by combining segments from both parents
+        child = {}
+        for i, category in enumerate(categories_list):
+            if point1 <= i <= point2:
+                child[category] = parent2[category]
+            else:
+                child[category] = parent1[category]
+        
+        # Check if the child's total price is within the budget
+        total_price = sum(child[cat]["Price"] for cat in child)
+        if total_price <= budget:
+            return child
 
 
         # Mutation (randomly change one item) with budget check
-def mutate(outfit):
-    # Select a random category
-    category = random.choice(list(categories.keys()))
-    # Randomly select a new item from that category
-    new_item = random.choice(categories[category])
-    
-    # Replace the item in the outfit
-    outfit[category] = new_item
+def mutate(outfit, budget):
+    while True:  # Keep mutating until the resulting outfit respects the budget
+        category = random.choice(list(categories.keys()))
+        new_item = random.choice(categories[category])
+        outfit[category] = new_item
+        total_price = sum(outfit[cat]["Price"] for cat in outfit)
+        if total_price <= budget:
+            break
 
 
 def replacement(old_population, new_population, dress_code, color_palette, budget, comfort_level):
-
     # Combine old and new populations
     combined_population = old_population + new_population
-    
+
     # Evaluate fitness for all individuals
-    combined_fitness = {i: fitness(individual, dress_code, color_palette, budget, comfort_level)
-                        for i, individual in enumerate(combined_population)}
-    
+    combined_fitness = {
+        i: fitness(individual, dress_code, color_palette, budget, comfort_level)
+        for i, individual in enumerate(combined_population)
+    }
+
     # Sort by fitness in descending order
     sorted_indices = sorted(combined_fitness, key=combined_fitness.get, reverse=True)
-    
+
     # Select the top individuals to form the next generation
-    next_generation = [combined_population[i] for i in sorted_indices[:len(old_population)]]
-    
+    next_generation = []
+    for idx in sorted_indices:
+        individual = combined_population[idx]
+        total_price = sum(individual[cat]["Price"] for cat in individual)
+
+        # Only add individuals that satisfy the budget constraint
+        if total_price <= budget:
+            next_generation.append(individual)
+
+        # Stop once the next generation is filled
+        if len(next_generation) == len(old_population):
+            break
+
+    # If for any reason we don't fill the population, regenerate missing individuals
+    while len(next_generation) < len(old_population):
+        next_generation.append(
+            {category: random.choice(items) for category, items in categories.items()}
+        )
+
     return next_generation
 
 
@@ -161,7 +183,9 @@ def genetic_algorithm(dress_code, color_palette, budget, comfort_level, pop_size
     optimal_solution = 1.0  # The ideal fitness is normalized to 1.0
     tolerance = 1e-8  # Error tolerance for termination
     avg_fitness_per_generation = []  # Track average fitness for each generation
-    population = create_initial_population(pop_size)
+
+    # Initialize the population with respect to the budget
+    population = create_initial_population(pop_size, budget)
 
     for generation in range(generations):
         # Step 1: Calculate fitness for the population
@@ -178,21 +202,22 @@ def genetic_algorithm(dress_code, color_palette, budget, comfort_level, pop_size
             print(f"Termination condition met at generation {generation}. Best fitness: {best_fitness_in_generation}")
             break
 
-        # Step 2: Selection and crossover to create new population
+        # Step 2: Selection and crossover to create a new population
         new_population = []
         while len(new_population) < pop_size:
             parent1_idx, parent2_idx = binary_tournament_selection(population, fitness_scores)
             parent1 = population[parent1_idx]
             parent2 = population[parent2_idx]
-            child = two_point_crossover(parent1, parent2)
+            child = two_point_crossover(parent1, parent2, budget)  # Pass budget constraint to crossover
 
-            # Mutation with a probability of 10%
-            if random.random() < 0.1:
-                mutate(child)
+            # Apply mutation
+            if random.random() < 0.1:  # 10% mutation probability
+                mutate(child, budget)
 
+            # Add the child to the new population
             new_population.append(child)
 
-        # Step 3: Replace old population with new population
+        # Step 3: Replace the old population with the new population
         population = replacement(population, new_population, dress_code, color_palette, budget, comfort_level)
 
     # Final evaluation after evolution completes
