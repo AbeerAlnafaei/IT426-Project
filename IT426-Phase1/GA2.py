@@ -77,11 +77,10 @@ def create_initial_population(pop_size, budget):
 def fitness(outfit, dress_code, color_palette, budget, comfort_level):
     # Normalize total price to a scale of [0, 1] relative to the budget
     total_price = sum(outfit[cat]["Price"] for cat in outfit)
-    if budget > 0:
-        # Normalize total price to a scale of [0, 1] relative to the budget
-        budget_component = min(total_price / budget, 1)
+    if budget >= total_price:
+        budget_component = 1
     else:
-        # If budget is 0
+        
         budget_component = 0
     # Components
     comfort_component = sum(1 if outfit[cat]["Comfort"] >= comfort_level else 0 for cat in outfit) / len(outfit)
